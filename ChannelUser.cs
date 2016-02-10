@@ -25,7 +25,7 @@ namespace ChatChannels
 
 		public void SetActiveChannel(string shortName)
 		{
-			if (shortName == null)
+			if (shortName == null || shortName == "~")
 			{
 				ActiveChannel = null;
 				return;
