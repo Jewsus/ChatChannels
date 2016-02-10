@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
+using TShockAPI;
 
 namespace ChatChannels
 {
@@ -26,6 +28,20 @@ namespace ChatChannels
 			ShortName = shortName;
 			Colour = ParseColour(colour);
 			Modes = ChannelMode.ModesFromString(modes);
+		}
+
+		public bool HasMode(char c)
+		{
+			return Modes.Any(m => m.Equals(c));
+		}
+
+		public void Broadcast(string msg, params object[] args)
+		{
+			List<string> userNames = Users.Select(u => u.Name) as List<string>;
+			foreach (TSPlayer player in TShock.Players.Where(p => p != null && p.IsLoggedIn && userNames.Contains(p.User.Name)))
+			{
+				player.SendMessage(string.Format(msg, args), Colour);
+			}
 		}
 
 		public static Color ParseColour(string colour)

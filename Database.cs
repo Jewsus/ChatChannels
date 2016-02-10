@@ -15,11 +15,13 @@ namespace ChatChannels
 
 		const string Channel_Insert_Query = "INSERT INTO Channel (Name, ShortName, Colour, Modes) VALUES (@0, @1, @2, @3);";
 		const string Channel_Insert_Query_No_Short = "INSERT INTO Channel (Name, Colour, Modes) VALUES (@0, @1, @2);";
-		const string Channel_Exists_Query = "SELECT Name FROM Channel WHERE Name = @0";
+		const string Channel_Exists_Query = "SELECT Name FROM Channel WHERE Name = @0;";
+		const string Channel_Delete_Query = "DELETE FROM Channel WHERE Name = @0;";
 
 
 		const string ChannelUser_Insert_Query = "INSERT INTO ChannelUser(UserName) VALUES (@0);";
 		const string ChannelUser_Existance_Query = "SELECT UserName FROM ChannelUser WHERE UserName = @0;";
+		const string ChannelUser_Delete_Query = "DELETE FROM ChannelUser WHERE UserName = @0;";
 
 		const string Channel_has_users_Insert_Query = "INSERT INTO Channel_has_ChannelUser(ChannelName, UserName) VALUES (@0, @1);";
 
@@ -115,6 +117,38 @@ namespace ChatChannels
 			}
 
 			return _db.Query(Channel_has_users_Delete_Query, channel, user) > 0;
+		}
+
+		/// <summary>
+		/// Removes a ChannelUser
+		/// </summary>
+		/// <param name="user"></param>
+		/// <returns></returns>
+		public bool RemoveUser(string user)
+		{
+			//If the user doesn't exist, return early
+			if (!CheckUserExistance(user))
+			{
+				return false;
+			}
+
+			return _db.Query(ChannelUser_Delete_Query, user) > 0;
+		}
+
+		/// <summary>
+		/// Removes a channel
+		/// </summary>
+		/// <param name="channel"></param>
+		/// <returns></returns>
+		public bool RemoveChannel(string channel)
+		{
+			//If the channel doesn't exist, return early
+			if (!CheckChannelExistance(channel))
+			{
+				return false;
+			}
+
+			return _db.Query(Channel_Delete_Query, channel) > 0;
 		}
 
 		/// <summary>

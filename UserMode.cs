@@ -1,26 +1,25 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace ChatChannels
 {
-	public class ChannelMode : IEquatable<char>
+	public class UserMode
 	{
 		private char _mode;
 
-		public ChannelMode(char c)
+		public UserMode(char c)
 		{
 			_mode = c;
 		}
 
 
-		public static List<ChannelMode> ModesFromString(string modes)
+		public static List<UserMode> ModesFromString(string modes)
 		{
-			List<ChannelMode> ret = new List<ChannelMode>();
+			List<UserMode> ret = new List<UserMode>();
 			//mode format: +abcdefetc
 			modes = modes.Remove(0, 1);
 			for (int i = 0; i < modes.Length; i++)
 			{
-				ret.Add(new ChannelMode(modes[i]));
+				ret.Add(new UserMode(modes[i]));
 			}
 			return ret;
 		}
