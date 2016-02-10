@@ -1,113 +1,80 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using TShockAPI;
 
 namespace ChatChannels.Hooks
 {
     public static class ChannelHooks
     {
-        public delegate void ChannelCreatedD(ChannelCreatedEventArgs e);
-        public static event ChannelCreatedD ChannelCreated;
+        public delegate void ChannelCreated(ChannelEventArgs e);
+        public static event ChannelCreated OnChannelCreate;
 
-        public delegate void ChannelRemovedD(ChannelRemovedEventArgs e);
-        public static event ChannelRemovedD ChannelRemove;
+        public delegate void ChannelRemoved(ChannelEventArgs e);
+        public static event ChannelRemoved OnChannelRemove;
 
-        public delegate void ChannelnLoginD(ChannelLoginEventArgs e);
-        public static event ChannelnLoginD ChannelLogin;
+        public delegate void ChannelnLogin(ChannelEventArgs e);
+        public static event ChannelnLogin OnChannelLogin;
 
-        public delegate void ChannelLogoutD(ChannelLogoutEventArgs e);
-        public static event ChannelLogoutD ChannelLogout;
+        public delegate void ChannelLogout(ChannelEventArgs e);
+        public static event ChannelLogout OnChannelLogout;
 
-        public delegate void ChannelJoinD(ChannelJoinEventArgs e);
-        public static event ChannelJoinD ChannelJoin;
+        public delegate void ChannelJoin(ChannelEventArgs e);
+        public static event ChannelJoin OnChannelJoin;
 
-        public delegate void ChannelLeaveD(ChannelLeaveEventArgs e);
-        public static event ChannelLeaveD ChanneLeave;
+        public delegate void ChannelLeave(ChannelEventArgs e);
+        public static event ChannelLeave OnChanneLeave;
 
-        public static void OnChannelCreated(TSPlayer ts, string channelname)
+        public static void InvokeChannelCreated(TSPlayer ts, Channel channel)
         {
-            if (ChannelCreated == null)
+            if (OnChannelCreate == null)
                 return;
 
-            ChannelCreated(new ChannelCreatedEventArgs() { TSplayer = ts, ChannelName = channelname });
+            OnChannelCreate(new ChannelEventArgs() { TSPlayer = ts, Channel = channel });
         }
 
-        public static void OnChannelRemoved(Channel channel)
+        public static void InvokeChannelRemoved(TSPlayer player, Channel channel)
         {
-            if (ChannelRemove == null)
+            if (OnChannelRemove == null)
                 return;
 
-            ChannelRemove(new ChannelRemovedEventArgs() { Channel = channel });
+            OnChannelRemove(new ChannelEventArgs() { TSPlayer = player, Channel = channel });
         }
 
-        public static void OnChannelLogin(TSPlayer ts, Channel channel)
+        public static void InvokeChannelLogin(TSPlayer ts, Channel channel)
         {
-            if (ChannelLogin == null)
+            if (OnChannelLogin == null)
                 return;
 
-            ChannelLogin(new ChannelLoginEventArgs() { TSplayer = ts, Channel = channel });
+            OnChannelLogin(new ChannelEventArgs() { TSPlayer = ts, Channel = channel });
         }
 
-        public static void OnChannelLogout(TSPlayer ts, Channel channel)
+        public static void InvokeChannelLogout(TSPlayer ts, Channel channel)
         {
-            if (ChannelLogout == null)
+            if (OnChannelLogout == null)
                 return;
 
-            ChannelLogout(new ChannelLogoutEventArgs() { TSplayer = ts, Channel = channel });
+            OnChannelLogout(new ChannelEventArgs() { TSPlayer = ts, Channel = channel });
         }
 
-        public static void OnChannelJoin(TSPlayer ts, Channel chanel)
+        public static void InvokeChannelJoin(TSPlayer ts, Channel chanel)
         {
-            if (ChannelJoin == null)
+            if (OnChannelJoin == null)
                 return;
 
-            ChannelJoin(new ChannelJoinEventArgs() { TSplayer = ts, Channel = chanel });
+            OnChannelJoin(new ChannelEventArgs() { TSPlayer = ts, Channel = chanel });
         }
 
-        public static void OnChannelLeave(TSPlayer ts, Channel channel)
+        public static void InvokeChannelLeave(TSPlayer ts, Channel channel)
         {
-            if (ChanneLeave == null)
+            if (OnChanneLeave == null)
                 return;
 
-            ChanneLeave(new ChannelLeaveEventArgs() { TSplayer = ts, Channel = channel });
+            OnChanneLeave(new ChannelEventArgs() { TSPlayer = ts, Channel = channel });
         }
     }
 
-    public class ChannelCreatedEventArgs : EventArgs
-    {
-        public TSPlayer TSplayer;
-        public string ChannelName;
-    }
-
-    public class ChannelRemovedEventArgs : EventArgs
-    {
-        public TSPlayer TSplayer;
-        public Channel Channel;
-    }
-
-    public class ChannelLoginEventArgs : EventArgs
-    {
-        public TSPlayer TSplayer;
-        public Channel Channel;
-    }
-
-    public class ChannelLogoutEventArgs : EventArgs
-    {
-        public TSPlayer TSplayer;
-        public Channel Channel;
-    }
-
-    public class ChannelJoinEventArgs : EventArgs
-    {
-        public TSPlayer TSplayer;
-        public Channel Channel;
-    }
-
-    public class ChannelLeaveEventArgs : EventArgs
-    {
-        public TSPlayer TSplayer;
-        public Channel Channel;
-    }
+	public class ChannelEventArgs : EventArgs
+	{
+		public TSPlayer TSPlayer;
+		public Channel Channel;
+	}
 }

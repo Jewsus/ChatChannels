@@ -3,19 +3,23 @@ using TerrariaApi.Server;
 using System.Reflection;
 using TShockAPI.Hooks;
 using System.Linq;
-using System.Text;
 using ChatChannels.Hooks;
 using TShockAPI;
 using Terraria;
 using System;
+using System.IO;
 
 namespace ChatChannels
 {
     [ApiVersion(1, 22)]
     public class ChatChannels : TerrariaPlugin
-    {
-        public UpdateChecker updateChecker;
-        public override Version Version
+	{
+		public Config Config = new Config();
+		public UpdateChecker UpdateChecker;
+		public ChatChannelsManager ChannelManager;
+		public string ConfigPath = Path.Combine(TShock.SavePath, "Channels", "ChatChannelsConfig.json");
+
+		public override Version Version
         {
             get { return Assembly.GetExecutingAssembly().GetName().Version; }
         }
@@ -35,39 +39,49 @@ namespace ChatChannels
 
         public override void Initialize()
         {
-            updateChecker = new UpdateChecker();
-            ChannelHooks.ChannelCreated += new ChannelHooks.ChannelCreatedD(ChannelHooks_ChannelCreated);
-            ChannelHooks.ChannelLogin += new ChannelHooks.ChannelnLoginD(ChannelHooks_ChannelLogin);
-            ChannelHooks.ChannelJoin += new ChannelHooks.ChannelJoinD(ChannelHooks_ChannelJoin);
-            ChannelHooks.ChanneLeave += new ChannelHooks.ChannelLeaveD(ChannelHooks_ChannelLeave);
-            ChannelHooks.ChannelRemove += new ChannelHooks.ChannelRemovedD(ChannelHooks_ChannelRemoved);
+			if (!File.Exists(ConfigPath))
+			{
+				Config.Write(ConfigPath);
+			}
+			Config.Read(ConfigPath);
+
+			TShock.Initialized += TShock_Initialized;
 
             ServerApi.Hooks.ServerChat.Register(this, OnChat);
             ServerApi.Hooks.ServerLeave.Register(this, OnLeave);
-            PlayerHooks.PlayerPostLogin += new PlayerHooks.PlayerPostLoginD(PlayerHooks_PlayerPostLogin);
+            PlayerHooks.PlayerPostLogin += PlayerHooks_PlayerPostLogin;
 
-            ServerApi.Hooks.GameInitialize.Register(this, OnInitialize);
-
-            Commands.ChatCommands.Add(new Command(Permission.Use, ChannelCmd, "chan"));
+            Commands.ChatCommands.Add(new Command(Permission.Use, ChannelCmd, "chan", "channel"));
             Commands.ChatCommands.Add(new Command(Permission.Chat, Chat, "ch") { AllowServer = false });
-
-            ChatChannelsManager.Initialize();
         }
 
-        void OnInitialize(EventArgs e)
-        {
-            updateChecker.CheckForUpdate();
-            if (updateChecker.UpdateAvailable)
-            {
-                TShock.Log.ConsoleInfo("An update is available for the Chat++ plugin!");
-                TShock.Log.ConsoleInfo("Type /chan changelog to see the changelog!");
-            }
-        }
+		private void TShock_Initialized()
+		{
+			UpdateChecker = new UpdateChecker();
+			UpdateChecker.CheckForUpdate();
+			if (UpdateChecker.UpdateAvailable)
+			{
+				TShock.Log.ConsoleInfo("An update is available for the Chat++ plugin!");
+				TShock.Log.ConsoleInfo("Type /chan changelog to see the changelog!");
+			}
+
+			ChannelManager = new ChatChannelsManager();
+			ChannelManager.Initialize();
+
+			ChannelHooks.OnChannelCreate += ChannelHooks_ChannelCreated;
+			ChannelHooks.OnChannelLogin += ChannelHooks_ChannelLogin;
+			ChannelHooks.OnChannelJoin += ChannelHooks_ChannelJoin;
+			ChannelHooks.OnChanneLeave += ChannelHooks_ChannelLeave;
+			ChannelHooks.OnChannelRemove += ChannelHooks_ChannelRemoved;
+		}
 
         protected override void Dispose(bool disposing)
         {
             if (disposing)
-            {
+			{
+				PlayerHooks.PlayerPostLogin -= PlayerHooks_PlayerPostLogin;
+				ServerApi.Hooks.ServerLeave.Deregister(this, OnLeave);
+				ServerApi.Hooks.ServerChat.Deregister(this, OnChat);
             }
             base.Dispose(disposing);
         }
@@ -181,10 +195,10 @@ namespace ChatChannels
                             return;
                         }
 
-                        if (!updateChecker.UpdateAvailable)
-                            updateChecker.CheckForUpdate();
+                        if (!UpdateChecker.UpdateAvailable)
+                            UpdateChecker.CheckForUpdate();
 
-                        if (updateChecker.UpdateAvailable)
+                        if (UpdateChecker.UpdateAvailable)
                         {
                             args.Player.SendInfoMessage("An update is available for the Chat++ plugin!");
                             args.Player.SendInfoMessage("Type /chan changelog to see the changelog!");
@@ -197,14 +211,14 @@ namespace ChatChannels
                 #region changelog
                 case "changelog":
                     {
-                        if (!updateChecker.UpdateAvailable)
+                        if (!UpdateChecker.UpdateAvailable)
                         {
                             args.Player.SendErrorMessage("There is no update available! Type \"/chan checkupdate\" to check for updates!");
                             return;
                         }
-                        args.Player.SendSuccessMessage("Changelog for the latest version (" + updateChecker.NewVersion + "):");
-                        for (int i = 0; i < updateChecker.ChangeLog.Length; i++)
-                            args.Player.SendInfoMessage(updateChecker.ChangeLog[i]);
+                        args.Player.SendSuccessMessage("Changelog for the latest version (" + UpdateChecker.NewVersion + "):");
+                        for (int i = 0; i < UpdateChecker.ChangeLog.Length; i++)
+                            args.Player.SendInfoMessage(UpdateChecker.ChangeLog[i]);
                     }
                     break;
                 #endregion changelog
@@ -543,33 +557,33 @@ namespace ChatChannels
             }
         }
 
-        void ChannelHooks_ChannelCreated(ChannelCreatedEventArgs e)
+        void ChannelHooks_ChannelCreated(ChannelEventArgs e)
         {
-            e.TSplayer.SendSuccessMessage(string.Format("Your channel ({0}) has been successfully created!", e.ChannelName));
-            TSPlayer.All.SendInfoMessage(string.Format("{0} has created a new channel: {1}.", e.TSplayer.Name, e.ChannelName));
+            e.TSPlayer.SendSuccessMessage(string.Format("Your channel ({0}) has been successfully created!", e.Channel.Name));
+            TSPlayer.All.SendInfoMessage(string.Format("{0} has created a new channel: {1}.", e.TSPlayer.Name, e.Channel.Name));
         }
 
-        void ChannelHooks_ChannelLogin(ChannelLoginEventArgs e)
+        void ChannelHooks_ChannelLogin(ChannelEventArgs e)
         {
-            e.Channel.Broadcast(e.TSplayer.Name + " has entered the channel!", e.TSplayer.Index);
+            e.Channel.Broadcast(e.TSPlayer.Name + " has entered the channel!", e.TSPlayer.Index);
         }
 
-        void ChannelHooks_ChannelJoin(ChannelJoinEventArgs e)
+        void ChannelHooks_ChannelJoin(ChannelEventArgs e)
         {
-            e.Channel.Broadcast(string.Format("A new member ({0}) has joined the channel!", e.TSplayer.Name), e.TSplayer.Index);
-            e.TSplayer.SendInfoMessage("Welcome to the channel!");
+            e.Channel.Broadcast(string.Format("A new member ({0}) has joined the channel!", e.TSPlayer.Name), e.TSPlayer.Index);
+            e.TSPlayer.SendInfoMessage("Welcome to the channel!");
         }
 
-        void ChannelHooks_ChannelRemoved(ChannelRemovedEventArgs e)
+        void ChannelHooks_ChannelRemoved(ChannelEventArgs e)
         {
             e.Channel.Broadcast("The channel has been closed!");
             TSPlayer.All.SendInfoMessage(string.Format("Channel {0} has been closed!", e.Channel.Name));
         }
 
-        void ChannelHooks_ChannelLeave(ChannelLeaveEventArgs e)
+        void ChannelHooks_ChannelLeave(ChannelEventArgs e)
         {
-            e.Channel.Broadcast(e.TSplayer.Name + " has left the channel!", e.TSplayer.Index);
-            e.TSplayer.SendInfoMessage("You have left the channel!");
+            e.Channel.Broadcast(e.TSPlayer.Name + " has left the channel!", e.TSPlayer.Index);
+            e.TSPlayer.SendInfoMessage("You have left the channel!");
         }
     }
 }
