@@ -6,6 +6,8 @@ namespace ChatChannels
 {
     public class Config
     {
+		public char ChatChannelSwitcherCharacter = '>';
+
 		public Config Read(string path, TSPlayer ts = null)
 		{
 			if (!File.Exists(path))

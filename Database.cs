@@ -8,7 +8,7 @@ namespace ChatChannels
 	{
 		#region Query strings
 
-		const string ChannelUser_Creation_Query = "CREATE TABLE IF NOT EXISTS ChannelUser(UserName VARCHAR(32),Modes VARCHAR(100) NOT NULL,PRIMARY KEY(UserName),FOREIGN KEY(UserName) REFERENCES users(Username)ON DELETE CASCADE ON UPDATE CASCADE);";
+		const string ChannelUser_Creation_Query = "CREATE TABLE IF NOT EXISTS ChannelUser(UserName VARCHAR(32),PRIMARY KEY(UserName),FOREIGN KEY(UserName) REFERENCES users(Username)ON DELETE CASCADE ON UPDATE CASCADE);";
 		const string Channel_Creation_Query = "CREATE TABLE IF NOT EXISTS Channel(Name VARCHAR(10),ShortName VARCHAR(3),Colour VARCHAR(11) NOT NULL,Modes VARCHAR(100) NOT NULL,PRIMARY KEY(Name));";
 		const string Channel_has_users_Creation_Query = "CREATE TABLE IF NOT EXISTS Channel_has_ChannelUser(ChannelName VARCHAR(10),UserName VARCHAR(32),Modes VARCHAR(100) NOT NULL,PRIMARY KEY(ChannelName, UserName),FOREIGN KEY(ChannelName)REFERENCES Channel(Name)ON DELETE CASCADE ON UPDATE CASCADE,FOREIGN KEY(UserName)REFERENCES ChannelUser(UserName) ON DELETE CASCADE ON UPDATE CASCADE);";
 		const string ChannelBan_Creation_Query = "CREATE TABLE IF NOT EXISTS ChannelBan(ChannelName VARCHAR(10),UserName VARCHAR(32),PRIMARY KEY(ChannelName, UserName),FOREIGN KEY(ChannelName)REFERENCES Channel(Name)ON DELETE CASCADE ON UPDATE CASCADE,FOREIGN KEY(UserName)REFERENCES ChannelUser(UserName)ON DELETE CASCADE ON UPDATE CASCADE);";
@@ -23,12 +23,11 @@ namespace ChatChannels
 		const string ChannelUser_Existance_Query = "SELECT UserName FROM ChannelUser WHERE UserName = @0;";
 		const string ChannelUser_Delete_Query = "DELETE FROM ChannelUser WHERE UserName = @0;";
 
-		const string Channel_has_users_Insert_Query = "INSERT INTO Channel_has_ChannelUser(ChannelName, UserName) VALUES (@0, @1);";
-
+		const string Channel_has_users_Insert_Query = "INSERT INTO Channel_has_ChannelUser(ChannelName, UserName, Modes) VALUES (@0, @1, @2);";
 		const string Channel_has_users_Delete_Query = "DELETE FROM Channel_has_ChannelUser WHERE ChannelName = @0 AND UserName = @1;";
 
 		const string Channel_Already_Has_User_Check_Query = "SELECT UserName FROM Channel_has_ChannelUser WHERE UserName = @0 AND ChannelName = @1";
-		
+		const string Channels_With_User_Registered_Query = "SELECT CU.Name FROM Channel AS CU JOIN Channel_has_ChannelUser AS CCU ON CU.Name = CCU.ChannelName WHERE CCU.UserName = @0;";
 		#endregion
 
 		internal IDbConnection _db;
@@ -99,7 +98,7 @@ namespace ChatChannels
 				return false;
 			}
 
-			return _db.Query(Channel_has_users_Insert_Query, channel, user) > 0;
+			return _db.Query(Channel_has_users_Insert_Query, channel, user, "") > 0;
 		}
 
 		/// <summary>
@@ -189,6 +188,20 @@ namespace ChatChannels
 			{
 				return res.Read();
 			}
+		}
+
+		public List<string> GetChannelNamesWithUser(string user)
+		{
+			List<string> names = new List<string>();
+			using (QueryResult res = _db.QueryReader(Channels_With_User_Registered_Query, user))
+			{
+				while (res.Read())
+				{
+					names.Add(res.Get<string>("Name"));
+				}
+			}
+
+			return names;
 		}
 
 		/// <summary>

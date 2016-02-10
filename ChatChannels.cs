@@ -16,6 +16,7 @@ namespace ChatChannels
 	{
 		public Config Config = new Config();
 		public ChatChannelsManager ChannelManager;
+		public string SavePath = Path.Combine(TShock.SavePath, "Channels");
 		public string ConfigPath = Path.Combine(TShock.SavePath, "Channels", "ChatChannelsConfig.json");
 
 		public override Version Version
@@ -38,6 +39,10 @@ namespace ChatChannels
 
         public override void Initialize()
         {
+			if (!Directory.Exists(SavePath))
+			{
+				Directory.CreateDirectory(SavePath);
+			}
 			if (!File.Exists(ConfigPath))
 			{
 				Config.Write(ConfigPath);
@@ -46,7 +51,7 @@ namespace ChatChannels
 
 			TShock.Initialized += TShock_Initialized;
 
-            ServerApi.Hooks.ServerChat.Register(this, OnChat);
+            ServerApi.Hooks.ServerChat.Register(this, OnChat, 5);
             ServerApi.Hooks.ServerLeave.Register(this, OnLeave);
             PlayerHooks.PlayerPostLogin += PlayerHooks_PlayerPostLogin;
 
@@ -78,20 +83,66 @@ namespace ChatChannels
         public ChatChannels(Main game)
             : base(game)
         {
-            Order = 1;
+            Order = -1;
         }
 
         void PlayerHooks_PlayerPostLogin(PlayerPostLoginEventArgs e)
         {
-
+			ChannelUser cu = new ChannelUser(e.Player.User.Name);
+			ChannelManager.BuildUserRelations(cu);
         }
 
         void OnLeave(LeaveEventArgs e)
         {
+			TSPlayer player = TShock.Players[e.Who];
+			if (player == null || !player.IsLoggedIn)
+			{
+				return;
+			}
+
+			ChannelManager.DestructUser(TShock.Players[e.Who]);
         }
 
         void OnChat(ServerChatEventArgs args)
         {
+			if (args.Handled)
+			{
+				return;
+			}
+
+			if (args.Text.StartsWith(TShock.Config.CommandSpecifier)
+				|| args.Text.StartsWith(TShock.Config.CommandSilentSpecifier))
+			{
+				return;
+			}
+
+			TSPlayer player = TShock.Players[args.Who];
+			if (player == null)
+			{
+				return;
+			}
+
+			if (string.IsNullOrEmpty(args.Text))
+			{
+				return;
+			}
+
+			ChannelUser user = ChannelManager.GetUser(player.User.Name);
+			if (user == null)
+			{
+				return;
+			}
+
+			if (args.Text[0] == Config.ChatChannelSwitcherCharacter)
+			{
+				string switcher = args.Text.Substring(1, args.Text.IndexOf(' ') - 1);
+                user.SetActiveChannel(switcher);
+				args.Handled = user.SendMessageToActiveChannel(player, args.Text.Remove(0, switcher.Length + 2));
+			}
+			else
+			{
+				args.Handled = user.SendMessageToActiveChannel(player, args.Text);
+			}
         }
 
         static string[] HelpMsg = new string[]
@@ -120,6 +171,11 @@ namespace ChatChannels
         void ChannelCmd(CommandArgs args)
         {
             string cmd = args.Parameters.Count > 0 ? args.Parameters[0].ToLower() : "help";
+			if (!args.Player.IsLoggedIn)
+			{
+				args.Player.SendErrorMessage("You must be logged in to use this command.");
+				return;
+			}
 
             switch (cmd)
             {
@@ -145,13 +201,16 @@ namespace ChatChannels
 							shortName = args.Parameters[3];
 						}
 
-						ErrorCode code = ChannelManager.CreateChannel(name, shortName, colour, "+p");
+						Channel c;
+						ErrorCode code = ChannelManager.CreateChannel(name, shortName, colour, "+p", out c);
 						if (code != ErrorCode.Success)
 						{
 							args.Player.SendErrorMessage($"Unable to create channel: Error code {code}.");
                             return;
 						}
-                    }
+						ChannelManager.JoinUserToChannel(c, args.Player);
+						args.Player.SendSuccessMessage($"Created channel '{name}'.");
+					}
                     break;
                 #endregion create
 
@@ -176,6 +235,7 @@ namespace ChatChannels
 							args.Player.SendErrorMessage($"Unable to join channel: Error code {code}.");
 							return;
 						}
+						args.Player.SendSuccessMessage($"Joined channel '{name}'.");
                     }
                     break;
                 #endregion join
@@ -201,6 +261,7 @@ namespace ChatChannels
 							args.Player.SendErrorMessage($"Unable to leave channel: Error code {code}.");
 							return;
 						}
+						args.Player.SendSuccessMessage($"Left channel '{name}'.");
 					}
                     break;
                 #endregion leave

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using TShockAPI;
 
@@ -12,7 +11,7 @@ namespace ChatChannels
 		public string ShortName { get; private set; }
 		public Color Colour { get; private set; }
 		public List<ChannelMode> Modes { get; private set; }
-		public List<ChannelUser> Users = new List<ChannelUser>();
+		public List<ChannelUser> Users { get; private set; }
 
 		public Channel(string name, string shortName, Color colour, List<ChannelMode> modes)
 		{
@@ -20,6 +19,7 @@ namespace ChatChannels
 			ShortName = shortName;
 			Colour = colour;
 			Modes = modes;
+			Users = new List<ChannelUser>();
 		}
 
 		public Channel(string name, string shortName, string colour, string modes)
@@ -28,6 +28,7 @@ namespace ChatChannels
 			ShortName = shortName;
 			Colour = ParseColour(colour);
 			Modes = ChannelMode.ModesFromString(modes);
+			Users = new List<ChannelUser>();
 		}
 
 		public bool HasMode(char c)
@@ -37,11 +38,18 @@ namespace ChatChannels
 
 		public void Broadcast(string msg, params object[] args)
 		{
-			List<string> userNames = Users.Select(u => u.Name) as List<string>;
+			string text = string.Format($"[{Name}] {msg}", args);
+			List<string> userNames = Users.Select(u => u.Name).ToList();
 			foreach (TSPlayer player in TShock.Players.Where(p => p != null && p.IsLoggedIn && userNames.Contains(p.User.Name)))
 			{
-				player.SendMessage(string.Format(msg, args), Colour);
+				player.SendMessage(string.Format(text, args), Colour);
 			}
+		}
+
+		public void BroadcastFromPlayer(TSPlayer player, string msg, params object[] args)
+		{
+			string text = $"{player.Group.Prefix}{player.Name}{player.Group.Suffix}: {msg}";
+			Broadcast(text, args);
 		}
 
 		public static Color ParseColour(string colour)

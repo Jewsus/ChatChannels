@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using TShockAPI;
-using System.IO;
 using System.Linq;
 
 namespace ChatChannels
@@ -8,16 +7,12 @@ namespace ChatChannels
     public class ChatChannelsManager
     {
 		Database Database;
-        public string SavePath = Path.Combine(TShock.SavePath, "Channels");
         public List<Channel> Channels = new List<Channel>();
+		public List<ChannelUser> Users = new List<ChannelUser>();
 
 		public void Initialize()
         {
-            if (!Directory.Exists(SavePath))
-                Directory.CreateDirectory(SavePath);
-
 			Database = new Database(TShock.DB);
-
 			Channels = Database.LoadChannels();
         }
 
@@ -26,18 +21,66 @@ namespace ChatChannels
 			return Channels.FirstOrDefault(c => c.Name.ToLowerInvariant() == name.ToLowerInvariant());
 		}
 
-		public ErrorCode CreateChannel(string name, string colour, string modes)
+		public ChannelUser GetUser(string name)
 		{
-			return CreateChannel(name, null, colour, modes);
+			return Users.FirstOrDefault(u => u.Name.ToLowerInvariant() == name.ToLowerInvariant());
 		}
 
-		public ErrorCode CreateChannel(string name, string shortName, string colour, string modes)
+		public void BuildUserRelations(ChannelUser user)
+		{
+			Users.Add(user);
+			if (!Database.CheckUserExistance(user.Name))
+			{
+				Database.CreateChannelUser(user.Name);
+				return;
+			}
+
+			List<string> channels = Database.GetChannelNamesWithUser(user.Name);
+			foreach (Channel c in Channels.Where(c => channels.Contains(c.Name)))
+			{
+				System.Console.WriteLine($"Added {user.Name} to {c.Name}");
+				c.Users.Add(user);
+				user.Channels.Add(c);
+			}
+		}
+
+		public void DestructUser(TSPlayer player)
+		{
+			ChannelUser user = GetUser(player.User.Name);
+			if (user == null)
+			{
+				return;
+			}
+
+			DestructUser(user);
+		}
+
+		public void DestructUser(ChannelUser user)
+		{
+			for (int i = user.Channels.Count - 1; i >= 0; i--)
+			{
+				user.Channels[i].Users.Remove(user);
+			}
+			Users.Remove(user);
+		}
+
+		public ErrorCode CreateChannel(string name, string colour, string modes, out Channel c)
+		{
+			return CreateChannel(name, null, colour, modes, out c);
+		}
+
+		public ErrorCode CreateChannel(string name, string shortName, string colour, string modes, out Channel c)
 		{
 			bool ret = Database.CreateChannel(name, shortName, colour, modes);
 
 			if (ret)
 			{
-				Channels.Add(new Channel(name, shortName, colour, modes));
+				c = new Channel(name, shortName, colour, modes);
+				Channels.Add(c);
+			}
+			else
+			{
+				c = null;
 			}
 			return ret ? ErrorCode.Success : ErrorCode.ChannelCreateFailed;
 		}
@@ -49,7 +92,8 @@ namespace ChatChannels
 
 		public ErrorCode JoinUserToChannel(Channel channel, ChannelUser user)
 		{
-			if (channel.HasMode('p') && !user.HasMode('s'))
+			//Bubbles down to JoinUserToChannel(string, string)
+			if (channel.HasMode('p') && !user.HasMode('S'))
 			{
 				return ErrorCode.InsufficientAccess;
 			}
@@ -58,33 +102,37 @@ namespace ChatChannels
 			if (ret == ErrorCode.Success)
 			{
 				channel.Users.Add(user);
+				user.Channels.Add(channel);
 			}
 			return ret;
 		}
 
 		public ErrorCode JoinUserToChannel(Channel channel, TSPlayer player)
 		{
+			//Bubbles down to JoinUserToChannel(Channel, ChannelUser)
 			if (!player.IsLoggedIn)
 			{
 				return ErrorCode.InsufficientAccess;
 			}
 
+			ChannelUser user;
+
 			if (Database.CheckUserExistance(player.User.Name))
 			{
-				return JoinUserToChannel(channel.Name, player.User.Name);
+				user = GetUser(player.User.Name);
+				return JoinUserToChannel(channel, user);
 			}
 
-			if (!Database.CreateChannelUser(player.User.Name))
+			if (Database.CreateChannelUser(player.User.Name))
+			{
+				user = new ChannelUser(player.User.Name);
+			}
+			else
 			{
 				return ErrorCode.UserCreateFailed;
 			}
 			
-			ErrorCode ret = JoinUserToChannel(channel.Name, player.User.Name);
-			if (ret == ErrorCode.Success)
-			{
-				channel.Users.Add(new ChannelUser(player.User.Name));
-			}
-			return ret;
+			return JoinUserToChannel(channel, user);
 		}
 
 		public ErrorCode RemoveUserFromChannel(string channel, string user)
@@ -94,10 +142,73 @@ namespace ChatChannels
 
 		public ErrorCode RemoveUserFromChannel(Channel channel, ChannelUser user)
 		{
-			return RemoveUserFromChannel(channel.Name, user.Name);
+			//Bubbles down to RemoveUserFromChannel(string, string)
+			ErrorCode ret = RemoveUserFromChannel(channel.Name, user.Name);
+			if (ret == ErrorCode.Success)
+			{
+				channel.Users.Remove(user);
+				user.Channels.Remove(channel);
+			}
+			return ret;
 		}
 
 		public ErrorCode RemoveUserFromChannel(Channel channel, TSPlayer player)
+		{
+			//Bubbles down to RemoveUserFromChannel(Channel, ChannelUser)
+			if (!player.IsLoggedIn)
+			{
+				return ErrorCode.InsufficientAccess;
+			}
+
+			if (!Database.CheckUserExistance(player.User.Name))
+			{
+				return ErrorCode.UserNotFound;
+			}
+
+			ChannelUser user = GetUser(player.User.Name);
+
+			return RemoveUserFromChannel(channel, user);
+		}
+
+		public ErrorCode RemoveChannel(string channel)
+		{
+			return Database.RemoveChannel(channel) ? ErrorCode.Success : ErrorCode.ChannelNotFound;
+		}
+
+		public ErrorCode RemoveChannel(Channel channel)
+		{
+			ErrorCode ret = RemoveChannel(channel.Name);
+			if (ret == ErrorCode.Success)
+			{
+				Channels.Remove(channel);
+				foreach (ChannelUser user in channel.Users)
+				{
+					user.Channels.Remove(channel);
+					if (user.ActiveChannel == channel)
+					{
+						user.SetActiveChannel(null);
+					}
+				}
+			}
+			return ret;
+		}
+
+		public ErrorCode RemoveChannelUser(string user)
+		{
+			return Database.RemoveUser(user) ? ErrorCode.Success : ErrorCode.UserNotFound;
+		}
+
+		public ErrorCode RemoveChannelUser(ChannelUser user)
+		{
+			ErrorCode ret = RemoveChannelUser(user.Name);
+			if (ret == ErrorCode.Success)
+			{
+				DestructUser(user);
+			}
+			return ret;
+		}
+
+		public ErrorCode RemoveChannelUser(TSPlayer player)
 		{
 			if (!player.IsLoggedIn)
 			{
@@ -109,38 +220,9 @@ namespace ChatChannels
 				return ErrorCode.UserNotFound;
 			}
 
-			return RemoveUserFromChannel(channel.Name, player.User.Name);
-		}
-
-		public ErrorCode RemoveChannel(string channel)
-		{
-			return Database.RemoveChannel(channel) ? ErrorCode.Success : ErrorCode.ChannelNotFound;
-		}
-
-		public ErrorCode RemoveChannel(Channel channel)
-		{
-			return RemoveChannel(channel.Name);
-		}
-
-		public ErrorCode RemoveChannelUser(string user)
-		{
-			return Database.RemoveUser(user) ? ErrorCode.Success : ErrorCode.UserNotFound;
-		}
-
-		public ErrorCode RemoveChannelUser(ChannelUser user)
-		{
-			return RemoveChannelUser(user.Name);
-		}
-
-		public ErrorCode RemoveChannelUser(TSPlayer player)
-		{
-			if (!player.IsLoggedIn)
-			{
-				return ErrorCode.InsufficientAccess;
-			}
-
-			//database checks user existance for us
-			return RemoveChannelUser(player.User.Name);
+			ChannelUser user = GetUser(player.User.Name);
+			
+			return RemoveChannelUser(user);
 		}
     }
 }

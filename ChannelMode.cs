@@ -11,12 +11,11 @@ namespace ChatChannels
 		{
 			_mode = c;
 		}
-
-
+		
 		public static List<ChannelMode> ModesFromString(string modes)
 		{
 			List<ChannelMode> ret = new List<ChannelMode>();
-			//mode format: +abcdefetc
+			//mode format: +abcCDefetc
 			modes = modes.Remove(0, 1);
 			for (int i = 0; i < modes.Length; i++)
 			{
@@ -27,7 +26,7 @@ namespace ChatChannels
 
 		public bool Equals(char other)
 		{
-			return _mode.Equals(other);
+			return _mode == other;
 		}
 	}
 }
