@@ -208,8 +208,12 @@ namespace ChatChannels
 							args.Player.SendErrorMessage($"Unable to create channel: Error code {code}.");
                             return;
 						}
-						ChannelManager.JoinUserToChannel(c, args.Player);
 						args.Player.SendSuccessMessage($"Created channel '{name}'.");
+						code = ChannelManager.JoinUserToChannel(c, args.Player);
+						if (code != ErrorCode.Success)
+						{
+							args.Player.SendErrorMessage($"Failed to auto-join you to channel '{name}': Error code {code}.");
+						}
 					}
                     break;
                 #endregion create
@@ -278,7 +282,7 @@ namespace ChatChannels
                             new PaginationTools.Settings
                             {
                                 HeaderFormat = "Channels help page ({0}/{1})",
-                                FooterFormat = "Type /chan help {0} for more.",
+                                FooterFormat = "Type /channel help {0} for more.",
                             });
                     }
                     break;

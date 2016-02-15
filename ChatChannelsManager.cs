@@ -89,10 +89,10 @@ namespace ChatChannels
 			return Database.JoinUserToChannel(channel, user) ? ErrorCode.Success : ErrorCode.JoinFailed;
 		}
 
-		public ErrorCode JoinUserToChannel(Channel channel, ChannelUser user)
+		public ErrorCode JoinUserToChannel(Channel channel, ChannelUser user, bool super = false)
 		{
 			//Bubbles down to JoinUserToChannel(string, string)
-			if (channel.HasMode(ChannelModes.PrivateMode) && !user.HasMode(UserModes.Invited))
+			if (!super && channel.HasMode(ChannelModes.PrivateMode) && !user.HasMode(UserModes.Invited))
 			{
 				return ErrorCode.InsufficientAccess;
 			}
