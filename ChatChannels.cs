@@ -202,7 +202,7 @@ namespace ChatChannels
 						}
 
 						Channel c;
-						ErrorCode code = ChannelManager.CreateChannel(name, shortName, colour, "+p", out c);
+						ErrorCode code = ChannelManager.CreateChannel(name, shortName, colour, "p", out c);
 						if (code != ErrorCode.Success)
 						{
 							args.Player.SendErrorMessage($"Unable to create channel: Error code {code}.");

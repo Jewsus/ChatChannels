@@ -38,7 +38,6 @@ namespace ChatChannels
 			List<string> channels = Database.GetChannelNamesWithUser(user.Name);
 			foreach (Channel c in Channels.Where(c => channels.Contains(c.Name)))
 			{
-				System.Console.WriteLine($"Added {user.Name} to {c.Name}");
 				c.Users.Add(user);
 				user.Channels.Add(c);
 			}
@@ -93,7 +92,7 @@ namespace ChatChannels
 		public ErrorCode JoinUserToChannel(Channel channel, ChannelUser user)
 		{
 			//Bubbles down to JoinUserToChannel(string, string)
-			if (channel.HasMode('p') && !user.HasMode('S'))
+			if (channel.HasMode(ChannelModes.PrivateMode) && !user.HasMode(UserModes.Invited))
 			{
 				return ErrorCode.InsufficientAccess;
 			}

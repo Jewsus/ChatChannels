@@ -7,20 +7,20 @@ namespace ChatChannels
 	public class ChannelUser
 	{
 		public string Name { get; private set; }
-		public List<UserMode> Modes { get; private set; }
+		public UserModes Modes { get; private set; }
 		public List<Channel> Channels { get; private set; }
 		public Channel ActiveChannel { get; private set; }
 
 		public ChannelUser(string name)
 		{
 			Name = name;
-			Modes = new List<UserMode>();
+			Modes = new UserModes();
 			Channels = new List<Channel>();
 		}
 
 		public bool HasMode(char c)
 		{
-			return Modes.Any(m => m.Equals(c));
+			return Modes.HasMode(c);
 		}
 
 		public void SetActiveChannel(string shortName)

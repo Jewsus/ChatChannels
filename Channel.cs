@@ -10,10 +10,10 @@ namespace ChatChannels
 		public string Name { get; private set; }
 		public string ShortName { get; private set; }
 		public Color Colour { get; private set; }
-		public List<ChannelMode> Modes { get; private set; }
+		public ChannelModes Modes { get; private set; }
 		public List<ChannelUser> Users { get; private set; }
 
-		public Channel(string name, string shortName, Color colour, List<ChannelMode> modes)
+		public Channel(string name, string shortName, Color colour, ChannelModes modes)
 		{
 			Name = name;
 			ShortName = shortName;
@@ -27,13 +27,23 @@ namespace ChatChannels
 			Name = name;
 			ShortName = shortName;
 			Colour = ParseColour(colour);
-			Modes = ChannelMode.ModesFromString(modes);
+			Modes = ChannelModes.ModesFromString(modes);
 			Users = new List<ChannelUser>();
 		}
 
 		public bool HasMode(char c)
 		{
-			return Modes.Any(m => m.Equals(c));
+			return Modes.HasMode(c);
+		}
+
+		public ChannelUser GetUser(TSPlayer player)
+		{
+			if (!player.IsLoggedIn)
+			{
+				return null;
+			}
+
+			return Users.FirstOrDefault(u => u.Name == player.User.Name);
 		}
 
 		public void Broadcast(string msg, params object[] args)
@@ -48,6 +58,14 @@ namespace ChatChannels
 
 		public void BroadcastFromPlayer(TSPlayer player, string msg, params object[] args)
 		{
+			if (HasMode(ChannelModes.MuteMode))
+			{
+				ChannelUser user = GetUser(player);
+				if (user == null || !user.HasMode(UserModes.BypassChannelMute))
+				{
+					return;
+				}
+			}
 			string text = $"{player.Group.Prefix}{player.Name}{player.Group.Suffix}: {msg}";
 			Broadcast(text, args);
 		}

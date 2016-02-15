@@ -58,7 +58,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Channel.cs" />
-    <Compile Include="ChannelMode.cs" />
+    <Compile Include="ChannelModes.cs" />
     <Compile Include="ChannelUser.cs" />
     <Compile Include="ChatChannels.cs" />
     <Compile Include="ChatChannelsHooks.cs" />
@@ -68,7 +68,7 @@
     <Compile Include="ErrorCode.cs" />
     <Compile Include="Permissions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="UserMode.cs" />
+    <Compile Include="UserModes.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
