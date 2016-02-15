@@ -9,6 +9,8 @@ using Terraria;
 using System;
 using System.IO;
 
+//TODO: FIX HOW CHANNELS DEAL WITH USERMODES
+
 namespace ChatChannels
 {
     [ApiVersion(1, 22)]
@@ -284,7 +286,13 @@ namespace ChatChannels
 							}
 
 							user.Modes.ModifyModes(args.Parameters[3]);
-							args.Player.SendSuccessMessage($"Successfully changed user modes for channel user '${user.Name}'.");
+							ErrorCode code = ChannelManager.SetUserModes(user, channel);
+							if (code != ErrorCode.Success)
+							{
+								args.Player.SendErrorMessage($"Failed to set new modes for user '{user.Name}' on channel '{channel.Name}': {code}.");
+								return;
+							}
+							args.Player.SendSuccessMessage($"Successfully changed user modes for channel user '{user.Name}'.");
 						}
 						else
 						{
@@ -292,10 +300,10 @@ namespace ChatChannels
 							ErrorCode code = ChannelManager.SetChannelModes(channel);
 							if (code != ErrorCode.Success)
 							{
-								args.Player.SendErrorMessage($"Failed to set new modes on channel {channel.Name}: {code}.");
+								args.Player.SendErrorMessage($"Failed to set new modes on channel '{channel.Name}': {code}.");
 								return;
 							}
-							args.Player.SendSuccessMessage($"Successfully changed channel modes for channel '${channel.Name}'.");
+							args.Player.SendSuccessMessage($"Successfully changed channel modes for channel '{channel.Name}'.");
 						}
 						break;
 					}
