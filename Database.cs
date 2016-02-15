@@ -17,7 +17,7 @@ namespace ChatChannels
 		const string Channel_Insert_Query_No_Short = "INSERT INTO Channel (Name, Colour, Modes) VALUES (@0, @1, @2);";
 		const string Channel_Exists_Query = "SELECT Name FROM Channel WHERE Name = @0;";
 		const string Channel_Delete_Query = "DELETE FROM Channel WHERE Name = @0;";
-
+		const string Channel_Update_Modes_Query = "UPDATE Channel SET Modes = @0 WHERE Name = @1;";
 
 		const string ChannelUser_Insert_Query = "INSERT INTO ChannelUser(UserName) VALUES (@0);";
 		const string ChannelUser_Existance_Query = "SELECT UserName FROM ChannelUser WHERE UserName = @0;";
@@ -25,6 +25,7 @@ namespace ChatChannels
 
 		const string Channel_has_users_Insert_Query = "INSERT INTO Channel_has_ChannelUser(ChannelName, UserName, Modes) VALUES (@0, @1, @2);";
 		const string Channel_has_users_Delete_Query = "DELETE FROM Channel_has_ChannelUser WHERE ChannelName = @0 AND UserName = @1;";
+		const string Channel_has_users_Update_Modes_Query = "UPDATE Channel_has_ChannelUser SET Modes = @0 WHERE ChannelName = @1 AND UserName = @2;";
 
 		const string Channel_Already_Has_User_Check_Query = "SELECT UserName FROM Channel_has_ChannelUser WHERE UserName = @0 AND ChannelName = @1";
 		const string Channels_With_User_Registered_Query = "SELECT CU.Name FROM Channel AS CU JOIN Channel_has_ChannelUser AS CCU ON CU.Name = CCU.ChannelName WHERE CCU.UserName = @0;";
@@ -99,6 +100,32 @@ namespace ChatChannels
 			}
 
 			return _db.Query(Channel_has_users_Insert_Query, channel, user, "") > 0;
+		}
+
+		public ErrorCode SetChannelModes(string channel, string modes)
+		{
+			if (!CheckChannelExistance(channel))
+			{
+				return ErrorCode.ChannelNotFound;
+			}
+
+			return _db.Query(Channel_Update_Modes_Query, modes, channel) > 0 
+				? ErrorCode.Success : ErrorCode.DatabaseUpdateError;
+		}
+
+		public ErrorCode SetUserModes(string user, string channel, string modes)
+		{
+			if (!CheckUserExistance(user))
+			{
+				return ErrorCode.UserNotFound;
+			}
+			if (!CheckUserChannelRegistration(user, channel))
+			{
+				return ErrorCode.ChannelRegistrationNotFound;
+			}
+
+			return _db.Query(Channel_has_users_Update_Modes_Query, modes, channel, user) > 0 
+				? ErrorCode.Success : ErrorCode.DatabaseUpdateError;
 		}
 
 		/// <summary>

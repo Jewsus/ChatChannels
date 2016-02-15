@@ -9,6 +9,7 @@
 		UserNotFound = 4,
 		ChannelCreateFailed = 5,
 		ChannelRegistrationNotFound = 6,
-		ChannelNotFound = 7
+		ChannelNotFound = 7,
+		DatabaseUpdateError = 8
 	}
 }

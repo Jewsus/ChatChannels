@@ -134,6 +134,26 @@ namespace ChatChannels
 			return JoinUserToChannel(channel, user);
 		}
 
+		public ErrorCode SetChannelModes(string channel, string modes)
+		{
+			return Database.SetChannelModes(channel, modes);
+		}
+
+		public ErrorCode SetChannelModes(Channel channel)
+		{
+			return SetChannelModes(channel.Name, channel.Modes.ToString());
+		}
+
+		public ErrorCode SetUserModes(string user, string channel, string modes)
+		{
+			return Database.SetUserModes(user, channel, modes);
+		}
+
+		public ErrorCode SetUserModes(ChannelUser user, Channel channel)
+		{
+			return SetUserModes(user.Name, channel.Name, user.Modes.ToString());
+		}
+
 		public ErrorCode RemoveUserFromChannel(string channel, string user)
 		{
 			return Database.RemoveUserFromChannel(channel, user) ? ErrorCode.Success : ErrorCode.ChannelRegistrationNotFound;

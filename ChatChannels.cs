@@ -149,15 +149,9 @@ namespace ChatChannels
         {
             "/channel create <name> <colour (eg 255,255,255)> [short name] - create a new channel",
             "/channel join <name> - join an existing channel.",
-            "/channel leave - leave your current channel."
-
-            /*"/chan invite <name> - will invite a player to your channel|guild.",
-            "/chan acceptinvite - join a channel|guild you were invited to.",
-            "/chan denyinvite - deny a pending channel|guild invitation.",
-            "/chan tpall - teleport all channel|guild members to you.",    
-            "/chan ban <player> - will ban a player from your channel|guild by Ip-Address.",
-            "/chan unban <player> - will unban a player from your channel|guild (if he was banned).",
-            "/chan kick <player> - will kick a player out of your channel|guild.",*/
+            "/channel leave - leave your current channel.",
+			"/channel setmode <channel> <modes>.",
+			"/channel setmode <channel> <user> <modes>."
         };
 
         void ChannelCmd(CommandArgs args)
@@ -260,10 +254,56 @@ namespace ChatChannels
 						args.Player.SendSuccessMessage($"Left channel '{name}'.");
 					}
                     break;
-                #endregion leave
+				#endregion leave
 
-                #region help
-                default:
+				#region set mode
+
+				case "setmode":
+					{
+						if (args.Parameters.Count < 3)
+						{
+							args.Player.SendErrorMessage("Invalid syntax! proper syntax: /channel setmode <channel> <mode>");
+							return;
+						}
+
+						Channel channel = ChannelManager.GetChannel(args.Parameters[1]);
+						if (channel == null)
+						{
+							args.Player.SendErrorMessage($"Unable to find channel '{args.Parameters[0]}'.");
+							return;
+						}
+						
+						if (args.Parameters.Count > 3)
+						{
+							ChannelUser user = ChannelManager.GetUser(args.Parameters[2]);
+							if (user == null)
+							{
+								//Setting modes on non-online players will not work! FIX
+								args.Player.SendErrorMessage($"Unable to find user '{args.Parameters[1]}'.");
+								return;
+							}
+
+							user.Modes.ModifyModes(args.Parameters[3]);
+							args.Player.SendSuccessMessage($"Successfully changed user modes for channel user '${user.Name}'.");
+						}
+						else
+						{
+							channel.Modes.ModifyModes(args.Parameters[2]);
+							ErrorCode code = ChannelManager.SetChannelModes(channel);
+							if (code != ErrorCode.Success)
+							{
+								args.Player.SendErrorMessage($"Failed to set new modes on channel {channel.Name}: {code}.");
+								return;
+							}
+							args.Player.SendSuccessMessage($"Successfully changed channel modes for channel '${channel.Name}'.");
+						}
+						break;
+					}
+
+				#endregion
+
+				#region help
+				default:
                 case "help":
                     {
                         int pageNumber;

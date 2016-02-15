@@ -2,7 +2,7 @@
 
 namespace ChatChannels
 {
-	public class ChannelModes
+	public class ChannelModes : ModeBase
 	{
 		/// <summary>
 		/// Channel Mute.No messages can be sent (except by channel users with a user mode that overrides this)
@@ -14,17 +14,7 @@ namespace ChatChannels
 		public const char PrivateMode = 'p';
 
 		private List<char> _modes = new List<char>();
-
-		public bool HasMode(char mode)
-		{
-			return _modes.Contains(mode);
-		}
-
-		public void AddMode(char mode)
-		{
-			_modes.Add(mode);
-		}
-		
+	
 		public static ChannelModes ModesFromString(string modes)
 		{
 			ChannelModes ret = new ChannelModes();

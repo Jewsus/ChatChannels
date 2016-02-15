@@ -1,29 +1,20 @@
-﻿using System.Collections.Generic;
-
-namespace ChatChannels
+﻿namespace ChatChannels
 {
-	public class UserModes
+	public class UserModes : ModeBase
 	{
 		public const char ChannelOwner = 'C';
 		public const char BypassChannelMute = 'M';
 		public const char Muted = 'm';
 		public const char Invited = 'I';
 
-		private List<char> _modes = new List<char>();
-
-		public bool HasMode(char mode)
+		public override bool HasMode(char mode)
 		{
-			if (_modes.Contains(ChannelOwner))
+			if (modes.Contains(ChannelOwner))
 			{
 				return true;
 			}
 
-			return _modes.Contains(mode);
-		}
-
-		public void AddMode(char mode)
-		{
-			_modes.Add(mode);
+			return base.HasMode(mode);
 		}
 
 		public static UserModes ModesFromString(string modes)
