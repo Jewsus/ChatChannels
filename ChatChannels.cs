@@ -147,17 +147,9 @@ namespace ChatChannels
 
         static string[] HelpMsg = new string[]
         {
-            "/channel <message> - talk in your channels's chat.",
             "/channel create <name> <colour (eg 255,255,255)> [short name] - create a new channel",
             "/channel join <name> - join an existing channel.",
-            "/channel leave - leave your current channel.",
-            "/channel reloadchannels - reload all channels and their members.",
-            "/channel reloadconfig - reload the channels configuration file.",
-            "/channel list - list all existing channels.",
-            "/channel setcolor <r, g, b> - change the channel's color.",
-            "/channel who - list all online members in your current channel.",
-            "/channel find <player> - find out which channels a player is in.",
-            "/channel rename <new name> - change your channel's name."
+            "/channel leave - leave your current channel."
 
             /*"/chan invite <name> - will invite a player to your channel|guild.",
             "/chan acceptinvite - join a channel|guild you were invited to.",
